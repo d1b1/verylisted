@@ -1,0 +1,17 @@
+<?php
+
+/* 
+ Impliment the Hook_perm().
+ */
+ 
+function vl_agent_perm() {
+	return array('vl_agent settings', 'vl_agent');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+ 
+function vl_agent_menu() {
+
+}

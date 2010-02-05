@@ -1,0 +1,286 @@
+<?php
+
+function vl_mls_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  switch ($op) {
+    case 'presave':
+	  if ($node->nid && $node->type =='property') {
+	      _vl_mls_attach_remote_images(&$node); 
+		 }
+      break;
+  }
+}
+
+/*
+ * Implementation of hook_cron().
+ */
+ 
+function vl_mls_cron() {
+
+  $enable_cron = variable_get('vl_mls_enable_cron', FALSE);
+  $cron_num_records  = variable_get('vl_mls_cron_num_records', 10);
+ 
+  if ($enable_cron==FALSE) {
+    echo "vl_mls CRON disabled.";
+    return;
+    } 
+  
+  echo 'Starting Cron Tasks.<br/>';
+  echo 'cron_num_records :'.$cron_num_records.'.<br/>';
+  
+  $sql = 'select list_no, street_no, street_name, zip_code, square_feet, t.long as city, t.state, t.county from mlsdata_cc d left join mlsdata_towns t on t.town_num = d.town_num where ifNull(nid,0) = 0  limit '.$cron_num_records;
+  $result = db_query($sql);
+  
+  $i = 0;
+  $sqlformat = "update {mlsdata_cc} set nid=%d, city='%s', county='%s', state=upper('%s') where list_no = '%s';";
+
+  while ($data = db_fetch_object($result)) {
+    $titlestr = trim($data->street_no) . '  ' . trim($data->street_name) . ', ' . trim($data->city) . ', ' . trim($data->state) . ', ' . trim($data->zip_code);
+	$node = new stdClass();
+	$node->type = 'property';
+	$node->title = $titlestr;
+	$node->list_no = trim($data->list_no);
+	$node->body = '';
+	$node->teaser = '';
+	$node->status = 1;
+	$node->promote = 1;
+
+	_vl_mls_mls_attach_remote_images($node);
+	node_save($node);
+
+	$insert = db_query($sqlformat, $node->nid, trim($data->city),  trim($data->county), trim($data->state),  $data->list_no );
+    $i = $i + 1;
+  }
+
+  echo 'Done with Cron Tasks.<br/>';
+}
+
+/* 
+ Impliment the Hook_perm().
+ */
+ 
+function vl_mls_perm() {
+	return array('mls account settings', 'mls cron settings', 'mls general settings', 'mls import options');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+ 
+function vl_mls_menu() {
+
+  $items['admin/verylisted/mls/setup'] = array(
+    'title' => 'MLSpin Settings',
+    'description' => 'Use this option to set the account login information, cron settings, property types and manage the setup and import of data from the MLSpin Site.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('vl_mls_admin_settings'),
+    'access arguments' =>  array('mls general settings'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'vl_mls.admin.inc',
+  );
+
+  // CALLBACKS
+  $items['admin/settings/verylisted/mls/force'] = array(
+    'page callback' => '_vl_mls_import_pipe_data',
+    'access arguments' => array('mls import options'),
+    'file' => 'vl_mls.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/settings/verylisted/mls/statistics'] = array(
+    'page callback' => '_vl_mls_get_listing_statistics',
+    'access arguments' => array('mls import options'),
+    'file' => 'vl_mls.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/settings/verylisted/mls/process'] = array(
+    'page callback' => '_vl_mls_process_listings',
+    'access arguments' => array('mls import options'),
+    'file' => 'vl_mls.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Writes the given data to the file system and drupals files table
+ * 
+ * Existing files are overriden.
+ * 
+ * @param array $info
+ *   Info for the file to create
+ * @param $temp
+ *   Indicated whether the file should be temporary saved of permanent
+ * 
+ * @return
+ *   File object or FALSE
+ * 
+ * @see remote_file_basepath()
+ */
+function _vl_mls_remote_file_write_file($info, $temp=FALSE) {
+  $exists = is_file($info['filepath']);
+  if (!$exists) {
+    file_save_data( $info['data'], $info['filepath'], FILE_EXISTS_REPLACE);
+    global $user;
+    $file = (object) array();
+    $file->uid = $user->uid;
+    $file->filename=$info['filename'];
+    $file->filepath=$info['filepath'];
+    $file->filemime=$info['filemime'];
+    $file->filesize=$info['filesize'];
+    if ($temp) {
+      $file->status = FILE_STATUS_TEMPORARY;
+    }
+    else {
+      $file->status = FILE_STATUS_PERMANENT;
+    }
+    $result=drupal_write_record('files', $file);
+    if ($result!==FALSE) {
+      return $file;
+    }
+    return FALSE;
+  }
+  else {
+    $sql="SELECT * FROM {files} WHERE filepath='%s'";
+    return db_fetch_object(db_query($sql, $info['filepath']));
+  }
+}
+
+/*
+ Got this code from the Remote File module. Moved into this file
+ so that I would not need to add the dependency and could customize the 
+ code as needed.
+ */
+ 
+function _vl_mls_remote_file_get_url($url, $temp=TRUE) {
+  $md5_url=md5($url);
+  $error = 'No error';
+  static $urls;
+  if (!isset($urls)) {
+    $urls=array();
+  }
+  if (isset($urls[$md5_url])) {
+    return $urls[$md5_url];
+  }
+  // TODO: Check for appropriate providers like wikipedia.org
+  //$result=parse_url($url);
+  //===
+  //TODO: Only do the request if the file is not already on our server
+  $result=drupal_http_request($url);
+  if (isset($result->error)) {
+    unset($result->data);
+    $error=print_r($result, TRUE);
+    return $error;
+  }
+  $info=array();
+  $info['filemime']=$result->headers['Content-Type'];
+  $info['filesize']=$result->headers['Content-Length'];
+  $info['data']=$result->data;
+  list($dummy, $ext)=explode('/', $info['filemime']);
+  $file_name = $md5_url . '.' . $ext;
+  //echo remote_file_basepath() . '/' . $file_name;
+  $info['filepath']=_vl_mls_remote_file_basepath() . '/' . $file_name;
+  $info['filename']=$file_name;
+  $file = _vl_mls_remote_file_write_file($info, $temp);
+  
+  if (!is_object($file)) {
+    $error=print_r($info,TRUE);  
+    return $error;
+  }
+  
+  $urls[$md5_url]=$file;
+  return $urls[$md5_url];
+}
+
+
+/*
+ This function is called when the MLS module is enabled 
+ and the property type needs to update the image for each 
+ listing.
+ */
+//error_reporting(E_ALL);
+//ini_set('display_errors', 1);
+
+function _vl_mls_attach_remote_images($node){
+
+  $url = variable_get('vl_mls_url', '');
+  $photo_count = $node->photo_count;
+  //$photo_count = 3;
+  $url = $url . '/photo/photo.aspx?mls=' . $node->list_no;
+
+  $node->field_photos = array();
+  $target = "field_photos";
+  $target_gallery = "field_photos_gallery";
+
+  for ($counter = 0; $counter <= ($photo_count-1); $counter += 1) {
+    $c = $counter > 9 ? chr($counter+55) : $counter;
+
+    $file = _vl_mls_remote_file_get_url($url .'&n='. $c);
+    if (is_object($file)) {
+	
+      if ($counter==0) {
+	    // insert the first image to the primary field.
+	    _vl_mls_remote_file_cck_attach_file($node, $file->filepath, $target, $counter);
+	  }
+	  
+	  // Handle the insert to the gallery cck image field.
+	  _vl_mls_remote_file_cck_attach_file($node, $file->filepath, $target_gallery, $counter);
+	  
+      //drupal_set_message('Image attached '.$file->filepath . ' ' .$counter );
+    }
+  }
+  
+}
+
+function _vl_mls_remote_file_cck_attach_file($node, $filepath, $fieldname, $index=0) {
+  $field = content_fields($fieldname, $node->type);
+  
+  //TODO: I'm not sure why we need the filefield validators too
+  $validators = array_merge(filefield_widget_upload_validators($field), imagefield_widget_upload_validators($field));
+  $files_path = filefield_widget_file_path($field);
+  
+  // This path does not have to exists already.
+  _vl_mls_recursive_file_create_path($files_path);
+  
+  $file = field_file_save_file($filepath, $validators, $files_path);
+
+  if (!is_array($node->$fieldname)) {
+    // Make CCK array structure
+    $node->$fieldname=array();
+  }
+  $node->{$fieldname}[$index]=$file; 
+  
+}
+
+/**
+ * Create the path ourselves recursively
+ */
+function _vl_mls_recursive_file_create_path($path) {
+  if (!file_check_directory($path, FILE_CREATE_DIRECTORY)) {
+    // Support DOS style
+    $root=str_replace('\\','/',file_directory_path());
+    $path=str_replace('\\','/',$path);
+    // We only do our work from the file system root
+    $roots=explode('/',$root);
+    $paths=explode('/',$path);
+    while (count($roots)) {
+      array_shift($roots);
+      array_shift($paths);
+    }
+    foreach ($paths as $dir) {
+      $root.= '/' . $dir;
+      file_check_directory($root, FILE_CREATE_DIRECTORY);
+    }
+  }
+}
+
+/**
+ * base path for the file location
+ * 
+ * @return
+ *   path to file location
+ */
+function _vl_mls_remote_file_basepath() {
+  $path='property';
+  $path = file_create_path($path);
+  file_check_directory($path, FILE_CREATE_DIRECTORY);
+  return $path;
+}

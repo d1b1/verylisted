@@ -1,0 +1,625 @@
+<?php 
+
+/**
+ * Implementation of hook_install().
+ */
+function verylisted_install() {
+  drupal_install_schema('verylisted');
+  
+  module_load_include('inc', 'verylisted', 'verylisted_setup');
+  module_load_include('cif', 'verylisted', 'countries/united_states');
+
+  // Add the CCK Image Field to the node type: property
+  verylisted_add_primary_imagefield();
+  verylisted_add_gallery_imagefield();
+  
+  // setup the united states lookup list.
+  united_states_install();
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function verylisted_uninstall() {
+
+ drupal_uninstall_schema('verylisted');
+ 
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function verylisted_schema() {
+
+    $schema['mlsdata_cc'] = array(
+	  'description' => t('MLS Condo Listings.'),
+	  'fields' => array(
+		'PROP_TYPE' => array(
+		  'description' => t('MLS Property Type.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LIST_NO' => array(
+		  'description' => t('MLS ID Number.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => TRUE,
+		  'default' => '',
+		),
+		'LIST_AGENT' => array(
+		  'description' => t('Listing Agent.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LIST_OFFICE' => array(
+		  'description' => t('Listing Office.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'STATUS' => array(
+		  'description' => t('Listing Status.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LIST_PRICE' => array(
+		  'description' => t('Listing List Price.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'STREET_NO' => array(
+		  'description' => t('Listing Street Number.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'STREET_NAME' => array(
+		  'description' => t('Listing Street Name.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'UNIT_NO' => array(
+		  'description' => t('Listing Unit Number.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'TOWN_NUM' => array(
+		  'description' => t('MLS Listing Town Number.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'AREA' => array(
+		  'description' => t('Listing Area/Neighborhood.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'ZIP_CODE' => array(
+		  'description' => t('Listing Zip Code.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		), 
+		'PHOTO_COUNT' => array(
+		  'description' => t('MLS Listing Photo Count.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'PHOTO_DATE' => array(
+		  'description' => t('MLS  ListingPhoto Date.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'PHOTO_MASK' => array(
+		  'description' => t('MLS Listing Photo Mask.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'CC_TYPE' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'STYLE' => array(
+		  'description' => t('Listing Style.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'NO_LIVING_LEVELS' => array(
+		  'description' => t('Listing Number of Living Levels.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LOT_SIZE' => array(
+		  'description' => t('Lising Lot Size.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'ACRE' => array(
+		  'description' => t('Number of Acres for property/list.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'SQUARE_FEET' => array(
+		  'description' => t('Listing Square Feet.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BASEMENT' => array(
+		  'description' => t('Listing Has Basement.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'NO_ROOMS' => array(
+		  'description' => t('Listing Number of Rooms.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'NO_BEDROOMS' => array(
+		  'description' => t('Listing Number of Bedrooms.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'NO_FULL_BATHS' => array(
+		  'description' => t('Listing Number of Full Baths.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'NO_HALF_BATHS' => array(
+		  'description' => t('Listing Number of Half Baths.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'MASTER_BATH' => array(
+		  'description' => t('Listing Has Master Bathroom.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LIV_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LIV_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'DIN_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'DIN_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'FAM_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'FAM_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'KIT_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'KIT_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'MBR_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'MBR_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BED2_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BED2_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BED3_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BED3_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BED4_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BED4_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BTH1_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BTH1_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BTH2_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BTH2_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LAUNDRY_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LAUNDRY_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH1_ROOM_NAME' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH1_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH1_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH2_ROOM_NAME' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH2_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH2_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH3_ROOM_NAME' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH3_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH3_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH4_ROOM_NAME' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH4_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH4_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH5_ROOM_NAME' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH5_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'OTH5_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BED5_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BED5_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BTH3_LEVEL' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'BTH3_DIMEN' => array(
+		  'description' => t('TODO: please describe this field!'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'CITY' => array(
+		  'description' => t('Listing City Name.'),
+		  'type' => 'varchar',
+		  'length' => '100',
+		  'not null' => FALSE,
+		),
+		'COUNTY' => array(
+		  'description' => t('Listing County Name.'),
+		  'type' => 'varchar',
+		  'length' => '100',
+		  'not null' => FALSE,
+		),
+		'STATE' => array(
+		  'description' => t('Listing State Name.'),
+		  'type' => 'varchar',
+		  'length' => '2',
+		  'not null' => FALSE,
+		),
+		'IMAGEURL' => array(
+		  'description' => t('Image URL'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'nid' => array(
+			'description' => 'The current {node_revisions}.nid version identifier.',
+			'type' => 'int',
+			'unsigned' => TRUE,
+			'not null' => TRUE,
+		),
+		'vid' => array(
+			'description' => 'The current {node_revisions}.nid version identifier.',
+			'type' => 'int',
+			'unsigned' => TRUE,
+			'not null' => TRUE,
+		),
+		'propertyid' => array(
+			'description' => 'The current {node_revisions}.nid version identifier.',
+			'type' => 'serial',
+			'unsigned' => TRUE,
+			'not null' => TRUE
+		),
+        'is_featured' => array(
+            'description' => t('Is Featured Listing.'),
+            'type' => 'int',
+            'size' => 'small',
+            'not null' => TRUE,
+            'default' => 0,
+        ),
+	  ),
+	  'primary key' => array('propertyid'),
+	);
+
+	$schema['mlsdata_towns'] = array(
+	  'description' => t('MLS TOWNS.'),
+	  'fields' => array(
+		'TOWN_NUM' => array(
+		  'description' => t('Listing City Name.'),
+		  'type' => 'varchar',
+		  'length' => '10',
+		  'not null' => FALSE,
+		),
+		'LONG' => array(
+		  'description' => t('Long Name.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'COUNTY' => array(
+		  'description' => t('Listing State Name.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'STATE' => array(
+		  'description' => t('Listing State Name.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+	  ),
+	  'primary key' => array('TOWN_NUM'),
+	);
+
+	$schema['vl_areas'] = array(
+	  'description' => t('MLS AREAS.'),
+	  'fields' => array(
+		'SHORT' => array(
+		  'description' => t('Listing Area Short Name.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+		'LONG' => array(
+		  'description' => t('Listing Area Long Name.'),
+		  'type' => 'varchar',
+		  'length' => '255',
+		  'not null' => FALSE,
+		),
+	  ),
+	  'primary key' => array('SHORT'),
+	);
+
+  $schema['vl_countries'] = array(
+    'fields' => array(
+      'country_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'country_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'country_iso_code_2' => array(
+        'description' => t('Two-character ISO country code.'),
+        'type' => 'char',
+        'length' => 2,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'country_iso_code_3' => array(
+        'description' => t('Three-character ISO country code.'),
+        'type' => 'char',
+        'length' => 3,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'version' => array(
+        'description' => t('The version of the CIF that loaded the country information.'),
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'country_name' => array('country_name'),
+    ),
+    'primary key' => array('country_id'),
+  );
+
+  $schema['vl_zones'] = array(
+    'fields' => array(
+      'zone_id' => array(
+      'type' => 'serial',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      ),
+    'zone_country_id' => array(
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+      ),
+    'zone_code' => array(
+      'description' => t('Standard abbreviation of the zone name.'),
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => TRUE,
+      'default' => '',
+      ),
+    'zone_name' => array(
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => TRUE,
+      'default' => '',
+      ),
+    ),
+    'indexes' => array(
+      'zone_code' => array('zone_code'),
+      'zone_country_id' => array('zone_country_id'),
+    ),
+    'primary key' => array('zone_id'),
+  );
+
+  return $schema;
+}

@@ -1,0 +1,116 @@
+<?php
+
+/* 
+ Impliment the Hook_perm().
+ */
+
+function vl_ui_perm() {
+	return array('vl_agent settings', 'vl_agent');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+ 
+function vl_ui_menu() {
+
+}
+
+function vl_ui_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'vl_ui'), 
+  );
+}
+
+function vl_ui_form_alter(&$form, &$form_state, $form_id) {
+
+    switch($form_id) {
+      case 'views_exposed_form':
+        if (isset($form)) {
+        
+        //---------------------------------------
+        $field = &$form['prop_type'];
+        $field['#type'] = "select";
+        $field['#attributes'] = array( 'class' => 'input-DROPDOWN');
+        
+        unset($field['#size']);
+        
+        $options[""] = "<Any>";
+        $options["Condo"] = "Condominium/Co-Op";
+        $options["Single Family"] = "Single Family";
+        $options["Rental"] = "Rental";
+        $options["Business"] = "Business";
+        
+        $field['#options'] = $options;
+        
+        //---------------------------------------
+        $field = &$form['city'];
+        $field['#type'] = "select"; 
+        
+        $field['#attributes'] = array( 'class' => 'input-DROPDOWN');
+        
+        unset($field['#size']);
+            
+            $query = "SELECT Distinct d.city
+                      FROM  {mlsdata_cc} d 
+                      Where ifNull(d.nid,0) > 0
+                      ORDER BY d.City ASC";
+            
+            $result = db_query($query);
+            $towns[""] = "<Any>";
+            while($row = db_fetch_array($result)) {
+                $value = $row["city"];
+                $towns[$value] = $row["city"];
+            }
+
+            $field['#options'] = $towns;
+
+         //---------------------------------------
+        $field = &$form['state'];
+        $field['#type'] = "select";
+        
+        $field['#attributes'] = array( 'class' => 'input-DROPDOWN');
+        unset($field['#size']);
+        
+        $query = "SELECT s.zone_code, s.zone_name 
+                  FROM {vl_zones} s
+                  JOIN {mlsdata_cc} d on (d.State = s.zone_code) 
+                  Where ifNull(d.nid,0) > 0
+                  ORDER BY s.zone_name ASC";
+        
+        $result = db_query($query);
+        $u[""] = "<Any>";
+        while($row = db_fetch_array($result)) {
+            $value = $row["zone_code"];
+            $u[$value] = $row["zone_name"];
+          }
+          
+
+        $field['#options'] = $u;
+
+          //---------------------------------------
+        $field = &$form['list_price'];
+        $field['#type'] = "select";
+        $field['#attributes'] = array( 'class' => 'input-DROPDOWN');
+        unset($field['#size']);
+        
+        $r[""] = "<Any>";
+        $r["0,50"] = "0 to 50k";
+        $r["50,100"] = "50k to 100k";
+        $r["100,150"] = "100k to 150k";
+        $r["150,200"] = "150k to 200k";
+        $r["200,300"] = "200k to 300k";
+        $r["300,500"] = "300k to 500k";
+        $r["500,9999999"] = "500k >";
+        
+        $field['#options'] = $r;
+
+        $form['submit']['#value'] = t('');
+
+        }
+        
+      break;
+    }
+    
+}

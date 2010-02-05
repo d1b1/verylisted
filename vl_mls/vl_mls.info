@@ -1,0 +1,5 @@
+name = MLSpin.com
+description = MLSpin data manager (MA, CT, RI, NY, NH, VT, ME, FL)
+package = VeryListed.com
+dependencies[] = verylisted
+core = 6.x

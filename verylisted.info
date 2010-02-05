@@ -1,0 +1,8 @@
+name = Manager
+description = VeryListed Real Estate Manager
+package = VeryListed.com
+dependencies[] = content
+dependencies[] = imagefield
+
+project = "verylisted"
+core = 6.x

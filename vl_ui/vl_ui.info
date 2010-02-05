@@ -1,0 +1,8 @@
+name = UI
+description = Provides grid and search options for listings.
+package = VeryListed.com
+dependencies[] = verylisted
+dependencies[] = imagecache
+core = 6.x
+
+project = "vl_ui"

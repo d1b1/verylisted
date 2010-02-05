@@ -1,0 +1,7 @@
+name = Agent
+description = VeryListed Listing Agents. Provides multi agent support options.
+package = VeryListed.com
+dependencies[] = verylisted
+core = 6.x
+
+project = "vl_agent"

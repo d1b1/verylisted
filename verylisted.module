@@ -1,0 +1,978 @@
+<?php
+include_once dirname(__FILE__) . '/verylisted_setup.inc';
+
+/*
+ This used the Hook_NodeAPI to perform a presave 
+ for changes to node type 'Property'.
+ */
+
+/**
+ * Implementation of Hook_Perm().
+ */
+function verylisted_perm() {
+	return array('vl settings', 'create property', 'edit own property', 
+	             'edit any property', 'delete own property', 'delete any property');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function verylisted_menu() {
+
+  $items['admin/verylisted'] = array(
+    'title' => 'Real Estate Manager',
+    'description' => "Manage your site donation options, pages and payment settings.",
+    'position' => 'left',
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' =>  array('vl settings'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of Hook_Node_info().
+ */
+function verylisted_node_info() {
+   return array(
+     'property' => array(
+       'name' => t('Property'),
+	   'module' => 'verylisted',
+	   'description' => t('VeryListing.com Property Listing.'),
+	   'has_title' => TRUE,
+	   'title_label' => t('Listing Name'),
+	   'has_body' => TRUE,
+	   'body_label' => t('Listing Summary'),
+	   'min_word_count' => 0,
+	   'locked' => FALSE
+	   )
+	);
+}
+
+/**
+ * Implementation of hook_insert().
+ */
+function verylisted_insert($node) {
+
+  $sql = "INSERT INTO {mlsdata_cc} ( 
+               nid, street_no, street_name, unit_no, city,
+			   state, zip_code, acre, master_bath, 
+		       basement, list_no, list_price, no_rooms,
+		       no_bedrooms, lot_size, no_full_baths,
+		       no_half_baths, square_feet, no_living_levels,
+		       cc_type, photo_count, style,
+			   county, area, liv_level
+          ) VALUES (
+		  %d, left('%s',100), left('%s',100), left('%s',100), left('%s',100),
+          left('%s',100), left('%s',100), left('%s',100), left('%s',100),
+          left('%s',100), left('%s',100), left('%s',100), left('%s',100),
+          left('%s',100), left('%s',100), left('%s',100),
+          left('%s',100), left('%s',100), left('%s',100),
+          left('%s',100), left('%s',100), left('%s',100),
+          left('%s',100), left('%s',100), left('%s',100)		  
+		  )";
+		        
+  db_query($sql, 
+           $node->nid, $node->street_no, $node->street_name, $node->unit_no, $node->city, 
+		   $node->state, $node->zip_code, $node->acre, $node->master_bath, 
+		   $node->basement, $node->list_no,$node->list_price, $node->no_rooms,
+		   $node->no_bedrooms, $node->lot_size, $node->no_full_baths, 
+		   $node->no_half_baths, $node->square_feet, $node->no_living_levels,
+		   $node->cc_type, $node->photo_count, $node->style,
+           $node->county, $node->area, $node->liv_level		   
+		   );
+}
+
+/**
+ * Implementation of hook_update().
+ */
+function verylisted_update($node) {
+
+  $sql = "Update {mlsdata_cc} 
+          SET 
+		  street_no = left('%s',100),
+		  street_name = left('%s',100),
+		  unit_no = left('%s',100),
+		  city = left('%s',100),
+		  state = left('%s',100), 
+		  zip_code = left('%s',100),
+		  acre = left('%s',100),
+		  master_bath = left('%s',100), 
+		  basement = left('%s',100), 
+		  list_no = left('%s',100), 
+		  list_price = left('%s',100), 
+		  no_rooms = left('%s',100), 
+		  no_bedrooms = left('%s',100), 
+		  lot_size = left('%s',100), 
+		  no_full_baths = left('%s',100), 
+		  no_half_baths = left('%s',100), 
+		  square_feet = left('%s',100), 
+		  no_living_levels = left('%s',100), 
+		  cc_type = left('%s',100), 
+		  photo_count = left('%s',100), 
+		  style = left('%s',100),
+		  county = left('%s',100),
+		  area = left('%s',100),
+		  liv_level = left('%s',100), 
+          is_featured = %d 
+		  WHERE nid=%d";
+		
+  db_query($sql, 
+           $node->street_no, 
+           $node->street_name, 
+		   $node->unit_no,
+		   $node->city, 
+		   $node->state, 
+		   $node->zip_code, 
+		   $node->acre, 
+		   $node->master_bath, 
+		   $node->basement, 
+		   $node->list_no,
+		   $node->list_price,
+		   $node->no_rooms,
+		   $node->no_bedrooms,
+		   $node->lot_size,
+		   $node->no_full_baths,
+		   $node->no_half_baths,
+		   $node->square_feet,
+		   $node->no_living_levels,
+		   $node->cc_type,
+		   $node->photo_count,
+		   $node->style,
+		   $node->county,
+		   $node->area,
+		   $node->liv_level,
+           $node->is_featured,
+		   $node->nid );
+
+}
+
+/**
+ * Implementation of hook_view().
+ */
+
+function verylisted_view($node, $teaser = FALSE, $page = FALSE) {
+
+   if (!$teaser) {
+     $node = node_prepare($node, $teaser);
+   }
+     
+  $node->content['street_no'] = array(
+    '#value' => theme('kkk', $node->street_no),
+    '#weight' => 1,
+   );
+
+   if ($teaser) {
+   $node = node_prepare($node, $teaser);
+   }
+   
+   return $node;
+}
+
+/*
+ Provides the view information needed to build a field to 
+ display listings in table or grid form.
+ */
+function verylisted_views_data() {
+
+  $data = array();
+  $data['mlsdata_cc']['table']['group']  = t('mlsdata_cc');
+  
+  $data['mlsdata_cc']['table']['base'] = array(
+    'field' => 'list_no',
+    'title' => t('Property'),
+    'help' => t('Presentations are groups of products.'),
+    );
+
+  $data['mlsdata_cc']['table']['join'] = array(
+    'node' => array(
+    'left_field' => 'nid',
+    'field' => 'nid',
+    ),
+  );
+  
+ // Node ID field.
+  $data['mlsdata_cc']['nid'] = array(
+    'title' => t('Example content'),
+    'help' => t('Some example content that references a node.'),
+    // Because this is a foreign key to the {node} table. This allows us to
+    // have, when the view is configured with this relationship, all the fields
+    // for the related node available.
+    'relationship' => array(
+      'base' => 'node',
+      'field' => 'nid',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Example node'),
+    ),
+  );
+
+   // Example plain text field.
+  $data['mlsdata_cc']['street_name'] = array(
+    'title' => t('Street Name'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+
+  // Example plain text field.
+  $data['mlsdata_cc']['unit_no'] = array(
+    'title' => t('Unit Number'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['prop_type'] = array(
+    'title' => t('Property Type'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+
+  // Example plain text field.
+  $data['mlsdata_cc']['street_no'] = array(
+    'title' => t('Street No'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['city'] = array(
+    'title' => t('City'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+
+  // Example plain text field.
+  $data['mlsdata_cc']['state'] = array(
+    'title' => t('State'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['list_no'] = array(
+    'title' => t('MLS Number'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+
+  // Example plain text field.
+  $data['mlsdata_cc']['city'] = array(
+    'title' => t('City'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['zip_code'] = array(
+    'title' => t('Zip Code'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['list_price'] = array(
+    'title' => t('List Price'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['no_bedrooms'] = array(
+    'title' => t('Num of Bedrooms'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['no_rooms'] = array(
+    'title' => t('Num of Rooms'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['imageurl'] = array(
+    'title' => t('MLS Image URL'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  // Example plain text field.
+  $data['mlsdata_cc']['imagepath'] = array(
+    'title' => t('MLS Image Path'),
+    'help' => t('Just a plain text field.'),
+    'field' => array(
+      'handler' => 'views_handler_field_file',
+      'click sortable' => TRUE,
+    ), 
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+  
+  return $data;
+}
+
+/**
+ * Impliments the node form hook().
+ */
+function verylisted_form($node) {
+ 
+    $type = node_get_types('type',$node);
+
+	$form['title'] = array(
+		'#type' => 'textfield',
+		'#title' => check_plain($type->title_label),
+		'#reqired' => TRUE,
+		'#default_value' => $node->title,
+		'#weight' => -5,
+		'#maxlength' => 255,
+	);
+   $form['body'] = array(
+        '#type' => 'textarea',
+        '#title' => check_plain($type->body_label),
+        '#rows' => 5,
+	    '#resizable' => TRUE,
+	    '#default_value' => check_plain($node->body),
+        '#required' => FALSE,
+    );
+	$form['body_filter']['filter'] = filter_form($node->format);
+	
+	$form['Area1'] = array(
+	  '#type' => 'fieldset',
+	  '#title' => t('Address Information'),
+	  '#weight' => -5,
+	  '#collapsible' => TRUE,
+	  '#collapsed' => FALSE,
+	  '#theme' => 'verylisted_form_area1',
+	);
+	$form['Area1']['is_featured'] = array(
+		'#type' => 'select',
+		'#title' => t('Is Featured'),
+		'#reqired' => TRUE,
+		'#maxlength' => 10,
+		'#size' => 1,
+        '#options' => array ( '1' => 'Yes', '0' => 'Nope', ),
+		'#default_value' => isset($node->is_featured) ? $node->is_featured : '0',
+	);
+    $form['Area1']['street_name'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Street Name'),
+		'#list_field' => '1',
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#size' => 10,
+		'#default_value' => isset($node->street_name) ? $node->street_name : '',
+	);
+	$form['Area1']['street_no'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Street No'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->street_no) ? $node->street_no : '',
+	);
+	$form['Area1']['county'] = array(
+		'#type' => 'textfield',
+		'#title' => t('County'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => '',
+	);
+
+	$form['Area1']['city'] = array(
+		'#type' => 'textfield',
+		'#title' => t('City'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->city) ? $node->city : '',
+	);
+
+	$form['Area1']['unit_no'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Unit No'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->unit_no) ? $node->unit_no : '',
+	);
+
+	$form['Area1']['zip_code'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Zip Code'),
+		'#reqired' => TRUE,
+		'#maxlength' => 10,
+		'#id' => 'zip_code',
+		'#size' => 10,
+		'#default_value' => isset($node->zip_code) ? $node->zip_code : '',
+	);
+	   	
+	$form['Area1']['state'] = array(
+		'#type' => 'select',
+		'#title' => t('State'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#options' => _get_verylisted_state_array(),
+		'#default_value' => isset($node->state) ? $node->state : '',
+		'#rows' => 7,
+	);
+
+//------------------------------------------------------------------------
+//------------------------------------------------------------------------
+	$form['Area2'] = array(
+	  '#type' => 'fieldset',
+	  '#title' => t('Details'),
+	  '#weight' => -4,
+	  '#collapsible' => TRUE,
+	  '#collapsed' => FALSE,
+	  '#theme' => 'verylisted_form_area2',
+	);
+
+	$form['Area2']['list_price'] = array(
+        '#type' => 'textfield',
+		'#title' => t('List Price'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#size' => 10,
+		'#default_value' => isset($node->list_price) ? $node->list_price : '',
+		'#rows' => 7,
+	);
+
+	$form['Area2']['square_feet'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Square Feet'),
+		'#reqired' => TRUE,
+		'#maxlength' => 10,
+		'#default_value' => isset($node->square_feet) ? $node->square_feet : '',
+		'#rows' => 7,
+	);
+
+	$form['Area2']['no_bedrooms'] = array(
+		'#type' => 'number',
+		'#title' => t('Number of Bedrooms'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#size' => 10,
+		'#default_value' => isset($node->no_bedrooms) ? $node->no_bedrooms : '',
+	);
+
+	$form['Area2']['no_living_levels'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Number of Levels'),
+		'#reqired' => FALSE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->no_living_levels) ? $node->no_living_levels : '',
+		'#rows' => 7,
+	);
+
+	$form['Area2']['lot_size'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Lot Size'),
+		'#reqired' => FALSE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->lot_size) ? $node->lot_size : '',
+		'#rows' => 7,
+	);
+
+	$form['Area2']['no_rooms'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Number of Rooms'),
+		'#reqired' => TRUE,
+		'#maxlength' => 10,
+		'#size' => 30,
+		'#default_value' => isset($node->no_rooms) ? $node->no_rooms : '',
+	);
+
+	$form['Area2']['liv_level'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Unit Level'),
+		'#reqired' => FALSE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->liv_level) ? $node->liv_level : '',
+		'#rows' => 7,
+	);
+
+	$form['Area2']['no_full_baths'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Number of Full Baths'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->no_full_baths) ? $node->no_full_baths : '',
+		'#rows' => 7,
+	);
+
+	$form['Area2']['no_half_baths'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Number of Half Baths'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->no_half_baths) ? $node->no_half_baths : '',
+		'#rows' => 7,
+	);
+
+	$form['Area2']['list_no'] = array(
+		'#type' => 'textfield',
+		'#title' => t('MLS Number'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->list_no) ? $node->list_no : '',
+		'#rows' => 7,
+	);
+	$form['Area2']['acre'] = array(
+      '#type' => 'textfield',
+		'#title' => t('Acres'),
+		'#reqired' => FALSE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->acre) ? $node->acre : '',
+		'#rows' => 7,
+	);
+	$form['Area2']['basement'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Has Basement?'),
+      '#reqired' => TRUE,
+      '#maxlength' => 30,
+      '#default_value' => isset($node->basement) ? $node->basement : '',
+      '#rows' => 7,
+	);
+	$form['Area2']['master_bath'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Has Master Bath?'),
+      '#reqired' => TRUE,
+      '#maxlength' => 30,
+      '#default_value' => isset($node->master_bath) ? $node->master_bath : '',
+      '#rows' => 7,
+	);
+	$form['Area2']['parking_spaces'] = array(
+      '#type' => 'checkbox',
+	  '#title' => t('Parking Spaces'),
+	  '#reqired' => TRUE,
+	  '#maxlength' => 30,
+	  '#default_value' => isset($node->parking_spaces) ? $node->parking_spaces : '',
+	  '#rows' => 7,
+	);
+	$form['Area1']['area'] = array(
+		'#type' => 'select',
+		'#title' => t('Area'),
+		'#reqired' => FALSE,
+		'#maxlength' => 30,
+        '#size' => 1,
+        '#options' => _get_verylisted_areas_array(),
+		'#default_value' => isset($node->area) ? $node->area : '',
+	);
+	$options = array('0' => t(''), 
+					 '1' => t('ACT'), 
+					 '2' => t('RAC'),
+					 '3' => t('EXT'),
+					 '4' => t('NEW'),
+					 '5' => t('PNG'),
+					 '6' => t('BOM')				 
+					);
+	$form['Area2']['status'] = array(
+		'#type' => 'select',
+		'#title' => t('Current Status'),
+		'#reqired' => FALSE,
+		'#maxlength' => 30,
+		'#options' => $options,
+		'#default_value' => isset($node->status) ? $node->status : '1',
+		'#rows' => 7,
+	);
+
+	$options = array('A' => t('A'), 'B' => t('B'), 'C' => t('C'));
+
+	$form['Area2']['cc_type'] = array(
+		'#type' => 'select',
+		'#title' => t('CC Type'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#options' => $options,
+		'#default_value' => isset($node->cc_type) ? $node->cc_type : '',
+		'#rows' => 7,
+	);
+	$form['Area2']['style'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Style'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->style) ? $node->style : '',
+		'#rows' => 7,
+	);
+	$form['Area2']['photo_count'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Number of Photos'),
+		'#reqired' => TRUE,
+		'#maxlength' => 30,
+		'#default_value' => isset($node->photo_count) ? $node->photo_count : '',
+		'#rows' => 7,
+	);
+
+  return $form;
+}
+
+/**
+ * Implementation of hook_load().
+ */
+function verylisted_load($node) {
+
+  $sql = 'SELECT d.street_name, 
+                 d.street_no, 
+				 d.square_feet, 
+                 d.no_rooms, 
+				 d.unit_no, 
+				 d.acre,
+				 d.master_bath,
+				 d.basement,
+				 d.cc_type,
+				 d.style,
+				 d.list_no,
+				 d.status,
+				 d.imageurl,
+				 d.no_full_baths,
+				 d.no_half_baths,
+				 d.zip_code, 
+				 d.lot_size,
+				 d.no_living_levels,
+				 d.no_bedrooms, 
+				 d.liv_level,
+				 d.photo_count,
+		         d.list_price,
+				 t.long as town_name,
+				 d.state,
+				 d.city,
+                 d.area
+		  From {mlsdata_cc} d
+		  Left Join {mlsdata_towns} t on (t.town_num = d.town_num)
+		  where d.nid = %d';
+  
+  //		  Left Join {vl_areas} a on (a.short = d.area)
+  return db_fetch_object(db_query($sql, $node->nid));		 
+}
+
+/**
+ * Implementation of hook_token_list().
+ */
+function verylisted_token_list($type = 'all') {
+  if ($type == 'node' ) {
+    $tokens['property']['list_no'] = t('MLS ID Number.');
+	$tokens['property']['imagepath'] = t('Property Image File Path.');
+    $tokens['property']['street_no'] = t('Property Listing Street Number.');
+	$tokens['property']['street_name'] = t('MLS Listing Street Name.');
+	$tokens['property']['unit_no'] = t('MLS Listing Unit Number.');
+	$tokens['property']['city'] = t('Property Listing City.');
+	$tokens['property']['state'] = t('Property Listing State.');
+	$tokens['property']['zip_code'] = t('Property Listing Zip Code.');
+	$tokens['property']['list_price'] = t('Property Listing List Price.');
+	$tokens['property']['no_rooms'] = t('Property Listing Number of Rooms.');
+	$tokens['property']['no_bedrooms'] = t('Property Listing Number of Bedrooms.');
+	$tokens['property']['lot_size'] = t('Property Listing Lot Size.');
+	$tokens['property']['no_full_baths'] = t('Property Listing Number of Full Bedrooms.');
+	$tokens['property']['no_half_baths'] = t('Property Listing Number of Half Bedrooms.');
+	$tokens['property']['acre'] = t('Property Listing Acres.');
+	$tokens['property']['square_feet'] = t('Property Listing Square Feet.');
+	$tokens['property']['no_living_levels'] = t('Property Listing No living levels.');
+	$tokens['property']['property_type'] = t('Property Listing Property Type.');
+	$tokens['property']['photo_count'] = t('Property Photo Count.');
+	$tokens['property']['style'] = t('Property Listing Style.');
+    return $tokens;
+  }
+}
+
+/**
+ * Implementation of hook_token_values().
+ */
+function verylisted_token_values($type, $object = NULL) {
+  $values = array();
+  switch ($type) {
+    case 'global':
+      break;
+    case 'node':
+      // Node tokens here.
+	  $values['mls'] = "shit for brains";
+	  $values['imagepath'] = $object->imagepath;
+	  $values['street_no'] = $object->street_no;
+	  $values['street_name'] = $object->street_name;
+	  $values['unit_no'] = $object->unit_no;
+	  $values['city'] = $object->city;
+	  $values['state'] = $object->state;
+	  $values['zip_code'] = $object->zip_code;
+	  $values['list_price'] = $object->list_price;
+	  $values['no_rooms'] = $object->no_rooms;
+	  $values['no_bedrooms'] = $object->no_bedrooms;
+	  $values['no_full_baths'] = $object->no_full_baths;
+	  $values['no_half_baths'] = $object->no_half_baths;
+	  $values['lot_size'] = $object->lot_size;
+	  $values['square_feet'] = $object->square_feet;
+	  $values['no_living_levels'] = $object->no_living_levels;
+	  $values['property_type'] = $object->prop_type;
+	  $values['photo_count'] = $object->photo_count;
+	  $values['style'] = $object->style;
+      break;
+  }
+  return $values;
+}
+
+function _get_verylisted_areas_array() {
+
+  $result = db_query("SELECT short, `long` FROM {vl_areas} ORDER BY `long`;");
+  $options[""] = "";
+  while ($zone = db_fetch_object($result)) {
+    $options[$zone->short] = $zone->long;
+  }
+  return $options;
+}
+
+/**
+ * Private Function that generates the array of states..
+ */
+function _get_verylisted_state_array() {
+  
+  $result = db_query("SELECT z.*, c.country_name FROM {vl_zones} AS z LEFT JOIN {vl_countries} AS c ON z.zone_country_id = c.country_id ORDER BY c.country_name, z.zone_name");
+  
+  $options[""] = "";
+  while ($zone = db_fetch_object($result)) {
+    $options[$zone->zone_code] = $zone->zone_name;
+	//[$zone->country_name]
+  }
+
+  return $options;
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function verylisted_theme() {
+  return array(
+    'verylisted_form_area1' => array(
+      'arguments' => array('form' => NULL),
+    ),
+    'verylisted_form_area2' => array(
+      'arguments' => array('form' => NULL),
+    ),
+    'node' => array(
+      'arguments' => array('node' => NULL, 'teaser' => FALSE, 'page' => FALSE),
+      'template' => 'node',
+    ),
+  );
+}
+
+/**
+ * Theme the node form area1 fieldset.
+ */
+function theme_verylisted_form_area1($form) {
+  return "<table>" 
+         . "<tr>"
+		 . "  <td width='20%'>" . drupal_render($form['street_no']) . "</td>"
+		 . "  <td width='20%'>" . drupal_render($form['street_name']) . "</td>"
+		 . "  <td width='40%'>" . drupal_render($form['unit_no']) . "</td>"
+		 . "</tr>"
+         . "<tr>"
+		 . "  <td>" . drupal_render($form['city']) . "</td>"
+		 . "  <td>" . drupal_render($form['state']) . "</td>"
+		 . "  <td>" . drupal_render($form['zip_code']) . "</td>"
+		 . "</tr>"
+         . "<tr>"
+		 . "  <td>" . drupal_render($form['county']) . "</td>"
+		 . "  <td>" . drupal_render($form['area']) . "</td>"
+         . "  <td>" . drupal_render($form['is_featured']) . "</td>"
+		 . "</tr>"
+		 . "</table>"
+		 . "\n" . drupal_render($form);
+}
+
+/**
+ * Theme the node area2 fieldset.
+ */
+ 
+function theme_verylisted_form_area2($form) {
+  return "<table border=0 >"
+		 ."<tr>" 
+		 ."  <td>".drupal_render($form['list_no'])."</td>"
+		 ."  <td>".drupal_render($form['list_price'])."</td>"
+		 ."  <td>".drupal_render($form['square_feet'])."</td>"
+		 ."  <td>".drupal_render($form['liv_level'])."</td>"
+		 ."  <td>".drupal_render($form['no_living_levels'])."</td>"
+		 ."</tr>"
+		 ."<tr>" 
+		 ."  <td>".drupal_render($form['lot_size'])."</td>"
+		 ."  <td>".drupal_render($form['no_half_baths'])."</td>"
+		 ."  <td>".drupal_render($form['no_full_baths'])."</td>"
+		 ."  <td>".drupal_render($form['acre'])."</td>"
+		 ."  <td>&nbsp;</td>"
+		 ."</tr>"
+		 ."<tr>" 
+		 ."  <td>".drupal_render($form['basement'])."</td>"
+		 ."  <td>".drupal_render($form['master_bath'])."</td>"
+		 ."  <td>".drupal_render($form['parking_spaces'])."</td>"
+		 ."  <td>".drupal_render($form['status'])."</td>"
+		 ."  <td>".drupal_render($form['cc_type'])."</td>"
+		 ."</tr>"
+		 ."<tr>" 
+		 ."  <td>".drupal_render($form['style'])."</td>"
+		 ."  <td>".drupal_render($form['photo_count'])."</td>"
+		 ."  <td>".drupal_render($form['no_rooms'])."</td>"
+		 ."</tr>"
+		 ."</table>"
+		 ."\n". drupal_render($form);
+}
+
